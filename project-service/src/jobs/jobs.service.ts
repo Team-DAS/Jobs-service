@@ -1,13 +1,15 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
+import { ClientProxy } from '@nestjs/microservices';
 import { Job } from './entities/job.entity';
-import { CreateJobDto, UpdateJobDto, JobQueryDto } from './dto';
+import { CreateJobDto, UpdateJobDto } from './dto';
 import { JobStatus } from '../common/enums';
 
 @Injectable()
@@ -15,59 +17,9 @@ export class JobsService {
   constructor(
     @InjectRepository(Job)
     private readonly jobRepository: Repository<Job>,
+    @Inject('PROJECT_EVENTS_SERVICE')
+    private readonly client: ClientProxy,
   ) {}
-
-  async findAll(queryDto: JobQueryDto): Promise<Job[]> {
-    const {
-      q,
-      jobType,
-      experienceLevel,
-      minSalary,
-      page = 1,
-      limit = 20,
-    } = queryDto;
-
-    const queryBuilder: SelectQueryBuilder<Job> = this.jobRepository
-      .createQueryBuilder('job')
-      .where('job.status = :status', { status: JobStatus.OPEN });
-
-    // Text search in title and description
-    if (q) {
-      queryBuilder.andWhere(
-        '(job.title ILIKE :search OR job.description ILIKE :search)',
-        { search: `%${q}%` },
-      );
-    }
-
-    // Filter by job type
-    if (jobType) {
-      queryBuilder.andWhere('job.jobType = :jobType', { jobType });
-    }
-
-    // Filter by experience level
-    if (experienceLevel) {
-      queryBuilder.andWhere('job.experienceLevel = :experienceLevel', {
-        experienceLevel,
-      });
-    }
-
-    // Filter by minimum salary
-    if (minSalary) {
-      queryBuilder.andWhere(
-        '(job.minSalary >= :minSalary OR job.maxSalary >= :minSalary)',
-        { minSalary },
-      );
-    }
-
-    // Pagination
-    const offset = (page - 1) * limit;
-    queryBuilder.skip(offset).take(limit);
-
-    // Order by creation date (newest first)
-    queryBuilder.orderBy('job.createdAt', 'DESC');
-
-    return await queryBuilder.getMany();
-  }
 
   async findOne(id: string): Promise<Job> {
     const job = await this.jobRepository.findOne({
@@ -105,8 +57,9 @@ export class JobsService {
     newJob.requiredSkills = createJobDto.requiredSkills;
     newJob.status = JobStatus.OPEN;
 
-    return await this.jobRepository.save(newJob);
-  
+    const createdJob = await this.jobRepository.save(newJob);
+    this.client.emit('project.created', createdJob);
+    return createdJob;
   }
 
   async update(
@@ -142,9 +95,9 @@ export class JobsService {
       );
     }
 
-    
-
-    return await this.jobRepository.save(job);
+    const updatedJob = await this.jobRepository.save(job);
+    this.client.emit('project.updated', updatedJob);
+    return updatedJob;
   }
 
   async remove(id: string, employerId: string): Promise<void> {
@@ -157,6 +110,7 @@ export class JobsService {
       );
     }
 
+    this.client.emit('project.deleted', { id });
     await this.jobRepository.remove(job);
   }
 

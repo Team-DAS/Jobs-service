@@ -5,7 +5,6 @@ import {
   Body,
   Param,
   Delete,
-  Query,
   UseGuards,
   Request,
   HttpCode,
@@ -17,7 +16,6 @@ import {
   CreateJobDto,
   UpdateJobDto,
   JobResponseDto,
-  JobQueryDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -32,11 +30,6 @@ interface AuthenticatedRequest extends Request {
 @Controller('jobs')
 export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
-
-  @Get()
-  async findAll(@Query() queryDto: JobQueryDto): Promise<JobResponseDto[]> {
-    return await this.jobsService.findAll(queryDto);
-  }
 
   @Get(':jobId')
   async findOne(@Param('jobId') id: string): Promise<JobResponseDto> {

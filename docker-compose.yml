@@ -1,35 +1,108 @@
 version: '3.8'
 
+networks:
+  services-network:
+    driver: bridge
+
 services:
-  jobs-service:
-    build: .
-    ports:
-      - "3002:3002"
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: postgres
-      DB_PASSWORD: password
-      DB_NAME: jobs_service
-      JWT_SECRET: your-super-secret-jwt-key-for-development
-      NODE_ENV: development
-      PORT: 3002
-    depends_on:
-      - postgres
-    volumes:
-      - .:/app
-      - /app/node_modules
+  # --- Infrastructure Services ---
 
   postgres:
     image: postgres:15-alpine
+    container_name: postgres_db
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: jobs_service
+      POSTGRES_DB: projects_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - services-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    environment:
+      RABBITM_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672"  # For microservice communication
+      - "15672:15672" # For web management console
+    networks:
+      - services-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: elasticsearch
+    environment:
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=false"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - services-network
+
+  # --- Application Microservices ---
+
+  project-service:
+    build:
+      context: ./project-service
+      dockerfile: Dockerfile
+    container_name: project-service
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - DB_USERNAME=user
+      - DB_PASSWORD=password
+      - DB_NAME=projects_db
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672
+      - JWT_SECRET=your-super-secret-jwt-key-for-development
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - services-network
+
+  search-service:
+    build:
+      context: ./search-service
+      dockerfile: Dockerfile
+    container_name: search-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672
+      - ELASTICSEARCH_NODE=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+      - rabbitmq
+    networks:
+      - services-network
+
+  categorization-service:
+    build:
+      context: ./categorization-service
+      dockerfile: Dockerfile
+    container_name: categorization-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+    depends_on:
+      - postgres
+    networks:
+      - services-network
 
 volumes:
   postgres_data:
+  es_data:

@@ -5,6 +5,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copia los archivos de definición de dependencias
+# Esto se aprovecha del cacheo de capas de Docker.
 COPY package*.json ./
 
 # Instala las dependencias
@@ -14,7 +15,7 @@ RUN npm install
 COPY . .
 
 # Expone el puerto que la aplicación usa
-EXPOSE 3002
+EXPOSE 3000
 
-# El comando para iniciar la aplicación en modo de desarrollo (compilación al vuelo)
+# El comando para iniciar la aplicación
 CMD ["npm", "run", "start:dev"]
