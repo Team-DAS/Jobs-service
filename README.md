@@ -34,6 +34,12 @@ This is a NestJS-based microservice for managing job postings on the Freelancer 
 ```bash
 npm install
 ```
+docker compose down -v
+docker compose build
+docker compose up -d
+docker ps
+docker logs jobs-service-jobs-service-1
+
 
 2. Set up your environment variables by creating a `.env` file:
 ```bash

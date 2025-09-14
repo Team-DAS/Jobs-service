@@ -93,13 +93,20 @@ export class JobsService {
       );
     }
 
-    const job = this.jobRepository.create({
-      ...createJobDto,
-      employerId,
-      status: createJobDto.status || JobStatus.OPEN,
-    });
+    const newJob = new Job();
+    newJob.employerId = employerId;
+    newJob.title = createJobDto.title;
+    newJob.description = createJobDto.description;
+    newJob.responsibilities = createJobDto.responsibilities;
+    newJob.jobType = createJobDto.jobType;
+    newJob.experienceLevel = createJobDto.experienceLevel;
+    newJob.minSalary = createJobDto.minSalary;
+    newJob.maxSalary = createJobDto.maxSalary;
+    newJob.requiredSkills = createJobDto.requiredSkills;
+    newJob.status = JobStatus.OPEN;
 
-    return await this.jobRepository.save(job);
+    return await this.jobRepository.save(newJob);
+  
   }
 
   async update(
@@ -116,22 +123,26 @@ export class JobsService {
       );
     }
 
-    // Validate salary range if both are provided
-    const newMinSalary = updateJobDto.minSalary ?? job.minSalary;
-    const newMaxSalary = updateJobDto.maxSalary ?? job.maxSalary;
+    // Manually map allowed fields to prevent mass assignment
+    // Se actualiza las propiedades del DTO a la entidad Job
+    for (const key in updateJobDto) {
+      if (updateJobDto[key] !== undefined) {
+        job[key] = updateJobDto[key];
+      }
+    }
 
+    // Validate salary range after potential updates
     if (
-      newMinSalary &&
-      newMaxSalary &&
-      newMinSalary > newMaxSalary
+      job.minSalary &&
+      job.maxSalary &&
+      job.minSalary > job.maxSalary
     ) {
       throw new BadRequestException(
         'Minimum salary cannot be greater than maximum salary',
       );
     }
 
-    // Merge the updates
-    Object.assign(job, updateJobDto);
+    
 
     return await this.jobRepository.save(job);
   }

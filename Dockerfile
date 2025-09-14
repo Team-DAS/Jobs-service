@@ -1,27 +1,20 @@
-# Use Node.js LTS version
+# Usa una imagen base de Node.js
 FROM node:18-alpine
 
-# Set working directory
+# Establece el directorio de trabajo en la aplicación
 WORKDIR /app
 
-# Copy package files
+# Copia los archivos de definición de dependencias
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Instala las dependencias
+RUN npm install
 
-# Copy source code
+# Copia el resto de los archivos de la aplicación
 COPY . .
 
-# Build the application
-RUN npm run build
-
-# Expose port
+# Expone el puerto que la aplicación usa
 EXPOSE 3002
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3002/health || exit 1
-
-# Start the application
-CMD ["node", "dist/main"] 
+# El comando para iniciar la aplicación en modo de desarrollo (compilación al vuelo)
+CMD ["npm", "run", "start:dev"]

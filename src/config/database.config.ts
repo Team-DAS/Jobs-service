@@ -1,7 +1,8 @@
+import { registerAs } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Job } from '../jobs/entities/job.entity';
 
-export const databaseConfig: TypeOrmModuleOptions = {
+export default registerAs('database', (): TypeOrmModuleOptions => ({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT, 10) || 5432,
@@ -9,7 +10,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'jobs_service',
   entities: [Job],
-  synchronize: process.env.NODE_ENV !== 'production', // Only for development
+  synchronize: process.env.NODE_ENV !== 'production',
   logging: process.env.NODE_ENV === 'development',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-}; 
+}));

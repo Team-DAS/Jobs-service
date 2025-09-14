@@ -6,14 +6,14 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USERNAME=postgres
-      - DB_PASSWORD=password
-      - DB_NAME=jobs_service
-      - JWT_SECRET=your-super-secret-jwt-key-for-development
-      - NODE_ENV=development
-      - PORT=3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: jobs_service
+      JWT_SECRET: your-super-secret-jwt-key-for-development
+      NODE_ENV: development
+      PORT: 3002
     depends_on:
       - postgres
     volumes:
@@ -23,13 +23,13 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=jobs_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: jobs_service
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data: 
+  postgres_data:

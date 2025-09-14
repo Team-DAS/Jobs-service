@@ -88,17 +88,18 @@ describe('JobsService', () => {
     };
 
     it('should create a job successfully', async () => {
-      mockRepository.create.mockReturnValue(mockJob);
       mockRepository.save.mockResolvedValue(mockJob);
 
       const result = await service.create(createJobDto, mockJob.employerId);
 
       expect(result).toEqual(mockJob);
-      expect(mockRepository.create).toHaveBeenCalledWith({
-        ...createJobDto,
-        employerId: mockJob.employerId,
-        status: JobStatus.OPEN,
-      });
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...createJobDto,
+          employerId: mockJob.employerId,
+          status: JobStatus.OPEN,
+        }),
+      );
     });
   });
 
